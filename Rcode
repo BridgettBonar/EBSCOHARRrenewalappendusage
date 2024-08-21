@@ -1,0 +1,107 @@
+#You will Need to download the following free programs:
+  #1. R: https://cran.r-project.org/
+  #2. R studio: https://posit.co/products/open-source/rstudio/
+
+#In R studio, open a new R script
+#Copy all the following into the script
+#EVERYTHING IS CASE SENSITIVE
+
+#import files
+#on the bottom right click the files tab -> left click file name -> Import Data set -> in the pop up's bottom left change file name
+  #1. EBSCO Current Subscriptions = Ebsco_Renewals
+  #2. EBSCO Survey for Customer Titles = Ebsco_Subjects
+  #3. TR_J1 For Alma Widget (Ebsco) = Ebsco_Usage
+  #4. Harrassowitz's Current Subscriptions List = Harrassowitz_Renewals
+  #5. TR_J1 for Alma Widget (Harr) = Harr_Usage
+  #6. Last year's Harr renewals = Harr_previous
+#Click on first line of code and click CNT+ENTER, wait for code at the bottom left to complete 
+#repeat CNT+ENTER until end
+
+install.packages("tidyverse")
+library(tidyverse)
+
+#join the Ebsco renewal list with subject information, if  fails check names under "Data" on the upper right and replace them.
+EBSCO_renewal_subjects <- left_join(Ebsco_Renewals, Ebsco_Subjects,
+                                    by = "ISSN",
+                                    na_matches = "never",
+                                    multiple = "first")
+
+#remove repeated and unnecessary columns, change the formatting of text if fails check column names 
+EBSCO_renewal_subjects <- EBSCO_renewal_subjects[c("Title Name.x", "ISSN", 
+                                                   "Fund Code", "ILS Number",
+                                                   "Publisher", "Format",
+                                                   "Alternative Formats",
+                                                   "Title Number",                           
+                                                   "Library Of Congress Classification",
+                                                   "Dewey Decimal Classification",           
+                                                   "Subject Heading",
+                                                   "Comes with",
+                                                   "Start Date", "Unit Price (USD)",                       
+                                                   "Service Charge or Discount Amount (USD)",
+                                                   "Total Price (USD)",                      
+                                                   "Total Cost of Current Order",
+                                                   "Currency")] %>%
+  rename("Title" = "Title Name.x") %>%
+  mutate("Publisher" = str_to_title(Publisher)) %>%
+  mutate("Subject Heading" = str_to_lower(`Subject Heading`)) %>%
+  separate(ISSN, into = c("ISSN1", "ISSN2"), sep = "-") %>%
+  unite(ISSN1, ISSN2, col = "Normalized_ISSN", sep= "")
+
+#Simplify EBSCO_usage and make ISSNs one column 
+Ebsco_Usage <- Ebsco_Usage[c("Normalized ISSN", "Normalized EISSN", 
+                                 "TR_J1 - Unique Item Requests")] %>%
+  rename("Usage2023" = "TR_J1 - Unique Item Requests") %>%
+  pivot_longer(cols = 1:2, names_to = NULL, values_to = "ISSN")%>%
+  drop_na("ISSN")
+
+#Join usage onto Ebsco renewal with subjects
+EBSCO_subjects_usage <- left_join(EBSCO_renewal_subjects, Ebsco_Usage, 
+                                  by = c("Normalized_ISSN" = "Normalized_ISSN"),
+                                  na_matches = "never",
+                                  multiple = "first") %>%
+  distinct("ILS Number", .keep_all = T, 
+           pick(contains("Usage2024")))
+
+#STOP check for duplication  in EBSCO_subjects_usage
+
+library(openxlsx)
+
+#write Excel sheet
+write.xlsx(x = EBSCO_subjects_usage, file = "EBSCO_renewal_with_subjects3.xlsx")
+
+#Join Harr Renewal with last year's, if  fails check names under "Data" on the upper right and replace them.
+Harr <- left_join(Harrassowitz_Renewals, Harr_previous,
+                  by = c("PO No.", "ISSN"),
+                  na_matches = "never")
+
+#remove repeated and unnecessary columns, change the formatting of text if fails check column names
+Harr <- Harr[c("Title.x", "Selector Initials", "ISSN", "Fund", "PO No.",
+               "Publisher", "Medium", "Current subs. coverage", "Post-cancellation access",
+               "2025 price", "2024 price", "Current Subscription Period:",
+               "HAR title ID", "Additional title information")] %>%
+  rename("Title" = "Title.x") %>%
+  separate(ISSN, into = c("ISSN1", "ISSN2"), sep = "-") %>%
+  unite(ISSN1, ISSN2, col = "Normalized_ISSN", sep= "") 
+
+#Simplify Harr_usage and make ISSNs one column 
+Harr_Usage <- Harr_Usage[c("Normalized ISSN", "Normalized EISSN", 
+                                 "TR_J1 - Unique Item Requests")] %>%
+  rename("Usage2023" = "TR_J1 - Unique Item Requests") %>%
+  pivot_longer(cols = 1:2, names_to = NULL, values_to = "ISSN")%>%
+  drop_na("ISSN")
+
+#Join usage onto Ebsco renewal with subjects
+Harr_with_Usage <- left_join(Harr, UsageHarr, by = "Normalized_ISSN",
+            na_matches = "never")
+
+library(openxlsx)
+
+#write Excel sheet
+write.xlsx(x = Harr_with_Usage, file = "Harr_renewal_Usage.xlsx")
+
+
+
+library(openxlsx)
+
+write.xlsx(x = EBSCOUsageDecisions, file = "EBSCO_renewal_with_subjects4.xlsx")
+write.xlsx(x = HarrUsageDecisions, file = "Harr_renewal_with_subjects2.xlsx")
