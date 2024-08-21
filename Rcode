@@ -67,7 +67,7 @@ EBSCO_subjects_usage <- left_join(EBSCO_renewal_subjects, Ebsco_Usage,
 library(openxlsx)
 
 #write Excel sheet
-write.xlsx(x = EBSCO_subjects_usage, file = "EBSCO_renewal_with_subjects3.xlsx")
+write.xlsx(x = EBSCO_subjects_usage, file = "EBSCO_renewal_with_subjects.xlsx")
 
 #Join Harr Renewal with last year's, if  fails check names under "Data" on the upper right and replace them.
 Harr <- left_join(Harrassowitz_Renewals, Harr_previous,
