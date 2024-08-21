@@ -99,9 +99,3 @@ library(openxlsx)
 #write Excel sheet
 write.xlsx(x = Harr_with_Usage, file = "Harr_renewal_Usage.xlsx")
 
-
-
-library(openxlsx)
-
-write.xlsx(x = EBSCOUsageDecisions, file = "EBSCO_renewal_with_subjects4.xlsx")
-write.xlsx(x = HarrUsageDecisions, file = "Harr_renewal_with_subjects2.xlsx")
