@@ -6,6 +6,8 @@
 #Copy all the following into the script
 #EVERYTHING IS CASE SENSITIVE
 
+#Need Help? contact RDS: ResearchDataHelp@groups.dartmouth.edu 
+
 #import files
 #on the bottom right click the files tab -> left click file name -> Import Data set -> in the pop-up's bottom left change file name
   #1. EBSCO Current Subscriptions = Ebsco_Renewals
@@ -22,7 +24,7 @@ library(tidyverse)
 
 #Pull needed columns from previous years' data
 #STOP: check the year in "Rename" should be the last fiscal year
-EBSCO_Previos <-- EBSCO_Previous[c("ISSN", "Selector", "Total Price (USD)")] %>%
+EBSCO_Previous <-- EBSCO_Previous[c("ISSN", "Selector", "Total Price (USD)")] %>%
   rename("FY25 Price" = "Total Price (USD)")
 
 #join the Ebsco renewal list with subject information, if  fails check names under "Data" on the upper right and replace them.
@@ -69,7 +71,7 @@ EBSCO_subjects_usage <- left_join(EBSCO_renewal, Ebsco_Usage,
 library(openxlsx)
 
 #write Excel sheet
-write.xlsx(x = EBSCO_subjects_usage, file = "EBSCO_renewal_with_subjects.xlsx")
+write.xlsx(x = EBSCO_subjects_usage, file = "EBSCO_renewal_with_usage.xlsx")
 
 #Join Harr Renewal with last year's, if  fails check names under "Data" on the upper right and replace them.
 Harr <- left_join(Harrassowitz_Renewals, Harr_previous,
