@@ -7,10 +7,10 @@
 #EVERYTHING IS CASE SENSITIVE
 
 #import files
-#on the bottom right click the files tab -> left click file name -> Import Data set -> in the pop up's bottom left change file name
+#on the bottom right click the files tab -> left click file name -> Import Data set -> in the pop-up's bottom left change file name
   #1. EBSCO Current Subscriptions = Ebsco_Renewals
-  #2. EBSCO Survey for Customer Titles = Ebsco_Subjects
-  #3. TR_J1 For Alma Widget (Ebsco) = Ebsco_Usage
+  #2. TR_J1 For Alma Widget (Ebsco) = Ebsco_Usage 
+  #3. Last year’s EBSCO Renewal List = Ebsco_Previous
   #4. Harrassowitz's Current Subscriptions List = Harrassowitz_Renewals
   #5. TR_J1 for Alma Widget (Harr) = Harr_Usage
   #6. Last year's Harr renewals = Harr_previous
@@ -20,47 +20,49 @@
 install.packages("tidyverse")
 library(tidyverse)
 
+#Pull needed columns from previous years' data
+#STOP: check the year in "Rename" should be the last fiscal year
+EBSCO_Previos <-- EBSCO_Previous[c("ISSN", "Selector", "Total Price (USD)")] %>%
+  rename("FY25 Price" = "Total Price (USD)")
+
 #join the Ebsco renewal list with subject information, if  fails check names under "Data" on the upper right and replace them.
-EBSCO_renewal_subjects <- left_join(Ebsco_Renewals, Ebsco_Subjects,
+EBSCO_renewal <- left_join(Ebsco_Renewals, Ebsco_Previous,
                                     by = "ISSN",
                                     na_matches = "never",
                                     multiple = "first")
 
 #remove repeated and unnecessary columns, change the formatting of text if fails check column names 
-EBSCO_renewal_subjects <- EBSCO_renewal_subjects[c("Title Name.x", "ISSN", 
-                                                   "Fund Code", "ILS Number",
-                                                   "Publisher", "Format",
-                                                   "Alternative Formats",
-                                                   "Title Number",                           
-                                                   "Library Of Congress Classification",
-                                                   "Dewey Decimal Classification",           
-                                                   "Subject Heading",
-                                                   "Comes with",
-                                                   "Start Date", "Unit Price (USD)",                       
-                                                   "Service Charge or Discount Amount (USD)",
-                                                   "Total Price (USD)",                      
-                                                   "Total Cost of Current Order",
-                                                   "Currency")] %>%
-  rename("Title" = "Title Name.x") %>%
+EBSCO_renewal <- EBSCO_renewal[c("Title Name", "ISSN", 
+                                  "Fund Code", "ILS Number",
+                                  "Publisher", "Format",
+                                  "Alternative Formats",
+                                  "Comes with",
+                                  "Start Date", "Unit Price (USD)",                       
+                                  "Service Charge or Discount Amount (USD)",
+                                  "Total Price (USD)",                      
+                                  "Total Cost of Current Order",
+                                  "Currency")] %>%
   mutate("Publisher" = str_to_title(Publisher)) %>%
   mutate("Subject Heading" = str_to_lower(`Subject Heading`)) %>%
   separate(ISSN, into = c("ISSN1", "ISSN2"), sep = "-") %>%
   unite(ISSN1, ISSN2, col = "Normalized_ISSN", sep= "")
 
 #Simplify EBSCO_usage and make ISSNs one column 
+#STOP: check the year in "Rename" should be the last calendar year
+
 Ebsco_Usage <- Ebsco_Usage[c("Normalized ISSN", "Normalized EISSN", 
                                  "TR_J1 - Unique Item Requests")] %>%
-  rename("Usage2023" = "TR_J1 - Unique Item Requests") %>%
+  rename("2024Usage" = "TR_J1 - Unique Item Requests") %>%
   pivot_longer(cols = 1:2, names_to = NULL, values_to = "ISSN")%>%
   drop_na("ISSN")
 
 #Join usage onto Ebsco renewal with subjects
-EBSCO_subjects_usage <- left_join(EBSCO_renewal_subjects, Ebsco_Usage, 
+EBSCO_subjects_usage <- left_join(EBSCO_renewal, Ebsco_Usage, 
                                   by = c("Normalized_ISSN" = "Normalized_ISSN"),
                                   na_matches = "never",
                                   multiple = "first") %>%
   distinct("ILS Number", .keep_all = T, 
-           pick(contains("Usage2024")))
+           pick(contains("FY24Usage")))
 
 #STOP check for duplication  in EBSCO_subjects_usage
 
@@ -75,6 +77,7 @@ Harr <- left_join(Harrassowitz_Renewals, Harr_previous,
                   na_matches = "never")
 
 #remove repeated and unnecessary columns, change the formatting of text if fails check column names
+#STOP: check the year years in Price Column names against data
 Harr <- Harr[c("Title.x", "Selector Initials", "ISSN", "Fund", "PO No.",
                "Publisher", "Medium", "Current subs. coverage", "Post-cancellation access",
                "2025 price", "2024 price", "Current Subscription Period:",
@@ -84,9 +87,10 @@ Harr <- Harr[c("Title.x", "Selector Initials", "ISSN", "Fund", "PO No.",
   unite(ISSN1, ISSN2, col = "Normalized_ISSN", sep= "") 
 
 #Simplify Harr_usage and make ISSNs one column 
+#STOP: check the year in "Rename" should be the last calendar year
 Harr_Usage <- Harr_Usage[c("Normalized ISSN", "Normalized EISSN", 
                                  "TR_J1 - Unique Item Requests")] %>%
-  rename("Usage2023" = "TR_J1 - Unique Item Requests") %>%
+  rename("2024Usage" = "TR_J1 - Unique Item Requests") %>%
   pivot_longer(cols = 1:2, names_to = NULL, values_to = "ISSN")%>%
   drop_na("ISSN")
 
